@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TaxDesk">
+<meta name="theme-color" content="#0f766e">
+<title>TaxDesk</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="splash">
+  <img src="icons/icon-192.png" alt="">
+  <h1>TaxDesk</h1>
+  <p id="splash-text">Opening TaxDesk…</p>
+  <div class="bar"><div id="splash-bar"></div></div>
+  <p class="small">The first time takes a minute: TaxDesk is saved on this iPad, then opens without the internet.</p>
+</div>
+
+<div id="gate" class="hidden">
+  <img src="icons/icon-192.png" alt="">
+  <h1>TaxDesk</h1>
+  <p id="gate-text">Enter your TaxDesk licence key to open TaxDesk on this iPad.</p>
+  <form id="gate-form">
+    <textarea id="gate-key" placeholder="TD1-…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+    <button class="primary" type="submit">Open TaxDesk</button>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <aside id="side">
+    <div class="brand"><img src="icons/icon-192.png" alt=""> TaxDesk</div>
+    <nav id="nav"></nav>
+    <div class="foot" id="foot"></div>
+  </aside>
+  <main id="main">
+    <header id="top">
+      <button id="menu" aria-label="Menu">☰</button>
+      <h1 id="title"></h1>
+    </header>
+    <section id="page"></section>
+  </main>
+</div>
+
+<div id="sheet" class="hidden"><div class="box">
+  <div class="head"><button class="link" id="sheet-back">← Back</button><b id="sheet-title"></b>
+    <button id="sheet-close">Close</button></div>
+  <div class="body" id="sheet-body"></div>
+</div></div>
+<div id="busy" class="hidden">Working…</div>
+
+<script src="pyodide/pyodide.js"></script>
+<script src="lib/marked.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
