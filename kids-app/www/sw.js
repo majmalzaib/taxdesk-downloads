@@ -1,5 +1,5 @@
 // Offline support: cache the whole app on first visit.
-const CACHE = 'little-stars-v1';
+const CACHE = 'little-stars-v2';
 const FILES = [
   './', 'index.html', 'style.css', 'app.js', 'audio.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',

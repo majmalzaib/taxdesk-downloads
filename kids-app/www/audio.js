@@ -72,6 +72,11 @@ const Sound = (() => {
       osc(f * 2, t, 0.7, { vol: 0.12 });
       osc(f * 3, t, 0.3, { vol: 0.05 });
     },
+    // quiet chime used by the magic drawing brush
+    soft(f, t) {
+      osc(f, t, 0.6, { vol: 0.12 });
+      osc(f * 2, t, 0.25, { vol: 0.03 });
+    },
     robot(f, t) {
       const o = ctx.createOscillator(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
       o.type = 'square'; o.frequency.value = f;

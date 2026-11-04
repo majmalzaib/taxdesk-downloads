@@ -13,7 +13,8 @@ Android or iOS app. Everything is spoken aloud, so kids don't need to read.
 | 🎨 **Colors** | Paint blobs: "Red, like a strawberry" | Pop the right balloon 🎈 |
 | 🔺 **Shapes** | 8 shapes, each with a simple fact | Find the shape |
 | 🦁 **Animals** | 15 animals and the sounds they make | Who says "moo"? · Find the animal |
-| 🎹 **Music** | Rainbow xylophone (Do Re Mi), 3 instruments, and drum, clap, bell and boing pads | 5 nursery songs: ▶ listen, or 👆 play along by tapping the glowing keys |
+| 🎹 **Music** | Rainbow xylophone (Do Re Mi), 3 instruments, and drum, clap, bell and boing pads | 11 nursery songs: ▶ listen, or 👆 play along by tapping the glowing keys |
+| 🖍️ **Draw** | Crayons, a rainbow brush, 3 brush sizes, eraser, emoji stamps, undo; the brush plays soft notes as you draw | ✏️ Trace letters, numbers and shapes · 💡 drawing ideas · ✅ Done saves to *My Pictures* and earns a star |
 | 🃏 **Memory** | — | Match the pairs: easy (6 cards) or big (12 cards) |
 | 🦄 **Stickers** | Every 5 ⭐ unlocks a new sticker (20 to collect) | — |
 

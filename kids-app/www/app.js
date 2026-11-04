@@ -135,6 +135,12 @@ const SONGS = [
   { name: 'Row Your Boat', e: '🚣', notes: 'C C C D E2 E D E F G4 c c c G G G E E E C C C G F E D C4' },
   { name: 'Old MacDonald', e: '🐮', notes: 'C C C G A A G2 E E D D C3 G C C C G A A G2 E E D D C3' },
   { name: 'Jingle Bells', e: '🔔', notes: 'E E E2 E E E2 E G C D E4 F F F F F E E E E D D E D2 G2' },
+  { name: 'London Bridge', e: '🌉', notes: 'G A G F E F G2 D E F2 E F G2 G A G F E F G2 D2 G2 E C2' },
+  { name: 'Hot Cross Buns', e: '🥯', notes: 'E D C2 E D C2 C C C C D D D D E D C2' },
+  { name: 'Are You Sleeping', e: '😴', notes: 'C D E C C D E C E F G2 E F G2 G A G F E C G A G F E C c G c2 c G c2' },
+  { name: 'Ode to Joy', e: '🎉', notes: 'E E F G G F E D C C D E E D D2 E E F G G F E D C C D E D C C2' },
+  { name: 'Rain Rain Go Away', e: '🌧️', notes: 'G E2 G G E2 G G E A G G E2' },
+  { name: 'Lightly Row', e: '🛶', notes: 'G E E2 F D D2 C D E F G G G2 G E E2 F D D2 C E G G C4' },
 ];
 const KEY_INDEX = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6, c: 7 };
 const parseSong = (str) => str.trim().split(/\s+/).map((tok) => ({ k: KEY_INDEX[tok[0]], b: tok.length > 1 ? +tok.slice(1) : 1 }));
@@ -765,6 +771,256 @@ function renderStickers() {
   Voice.say(have ? `You have ${have} sticker${have > 1 ? 's' : ''}!` : 'Play games and win stars to get stickers!');
 }
 
+/* ---------- Draw & Color ---------- */
+const DRAW_COLORS = [
+  ['Red', '#ff3b30'], ['Orange', '#ff9500'], ['Yellow', '#ffd60a'], ['Green', '#34c759'], ['Blue', '#0a84ff'],
+  ['Purple', '#af52de'], ['Pink', '#ff6fb5'], ['Brown', '#a0632a'], ['Black', '#222222'],
+];
+const BRUSHES = [['Small', 6], ['Medium', 14], ['Big', 28]];
+const STAMPS = [['⭐', 'stars'], ['❤️', 'hearts'], ['🌸', 'flowers'], ['🐞', 'ladybugs'], ['🚀', 'rockets'], ['🐟', 'fish']];
+const TRACE_SHAPES = {
+  circle: 'M50 8A42 42 0 1 1 49.9 8Z',
+  square: 'M10 10H90V90H10Z',
+  triangle: 'M50 8L94 90H6Z',
+  star: 'M50 5L61 38L96 38L68 58L79 92L50 72L21 92L32 58L4 38L39 38Z',
+  heart: 'M50,90 C50,90 6,62 6,34 C6,19 17,9 30,9 C40,9 47,15 50,23 C53,15 60,9 70,9 C83,9 94,19 94,34 C94,62 50,90 50,90Z',
+};
+const TRACE_ITEMS = [
+  ...LETTERS.map(([L]) => ({ text: L, say: `the letter ${L}` })),
+  ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ text: String(n), say: `the number ${NUM_WORDS[n]}` })),
+  ...Object.keys(TRACE_SHAPES).map((k) => ({ shape: k, say: `the ${k}` })),
+];
+const DRAW_IDEAS = [
+  'Can you draw a big yellow sun?', 'Draw a house with a red roof!', 'Draw a happy face!',
+  'Draw a rainbow with lots of colors!', 'Draw your favorite animal!', 'Draw a flower in a garden!',
+  'Draw a fish in the blue sea!', 'Draw a car with round wheels!', 'Draw yourself!', 'Draw a tall green tree!',
+  'Draw a cat with long whiskers!', 'Draw a rocket going to the moon!',
+];
+const DRAW_PRAISE = ['Beautiful!', 'Wow, nice colors!', 'You are a great artist!', 'I love it!', 'Keep going!', 'So creative!'];
+
+function renderDraw() {
+  const body = shell('Draw & Color', '🖍️', null);
+  let color = DRAW_COLORS[0][1], size = 14, tool = 'brush', stamp = STAMPS[0], hue = 0;
+  let strokes = 0, lastNote = 0, traceItem = null, W = 0, H = 0, dpr = 1;
+  const undo = [];
+
+  const tip = h('div', { class: 'draw-tip' }, 'Pick a color and draw with your finger! 👆');
+  const say = (text, show = text) => { tip.textContent = show; Voice.say(text); };
+
+  /* palette */
+  const palette = h('div', { class: 'palette' });
+  const select = (el) => { body.querySelectorAll('.sel').forEach((x) => x.classList.remove('sel')); el.classList.add('sel'); };
+  DRAW_COLORS.forEach(([name, hex], i) => {
+    const b = h('button', { class: 'swatch' + (i === 0 ? ' sel' : ''), 'aria-label': name, style: `--c:${hex}` });
+    b.onclick = () => { color = hex; tool = 'brush'; select(b); Sound.playNote(PENTA[i % PENTA.length], 'xylo'); say(name + '!', `${name} crayon 🖍️`); };
+    palette.append(b);
+  });
+  const rainbowBtn = h('button', { class: 'swatch rainbow', 'aria-label': 'Rainbow brush' });
+  rainbowBtn.onclick = () => { tool = 'rainbow'; select(rainbowBtn); Sound.sparkle(); say('Rainbow magic brush!', 'Rainbow magic brush 🌈'); };
+  palette.append(rainbowBtn);
+
+  /* canvas */
+  const board = h('div', { class: 'board' });
+  const guide = h('canvas', { class: 'guide' });
+  const paint = h('canvas', { class: 'paint', 'aria-label': 'Drawing board' });
+  board.append(guide, paint);
+  const gctx = guide.getContext('2d'), pctx = paint.getContext('2d');
+
+  /* tools */
+  const tools = h('div', { class: 'draw-tools' });
+  BRUSHES.forEach(([name, px]) => {
+    const b = h('button', { class: 'tool size' + (px === size ? ' on' : ''), 'aria-label': `${name} brush` }, h('i', { style: `width:${px * 0.8 + 6}px;height:${px * 0.8 + 6}px` }));
+    b.onclick = () => {
+      size = px; tools.querySelectorAll('.size').forEach((x) => x.classList.toggle('on', x === b));
+      if (tool === 'eraser' || tool === 'stamp') { tool = 'brush'; select(palette.children[Math.max(0, DRAW_COLORS.findIndex((c) => c[1] === color))]); }
+      Sound.tap(); say(`${name} brush!`);
+    };
+    tools.append(b);
+  });
+  const eraser = h('button', { class: 'tool', 'aria-label': 'Eraser' }, '🧽');
+  eraser.onclick = () => { tool = 'eraser'; select(eraser); Sound.flip(); say('Eraser! Rub out anything you like.', 'Eraser 🧽'); };
+  tools.append(eraser);
+  STAMPS.forEach((st) => {
+    const b = h('button', { class: 'tool', 'aria-label': `${st[1]} stamp` }, st[0]);
+    b.onclick = () => { tool = 'stamp'; stamp = st; select(b); Sound.pop(); say(`${st[1]}! Tap the paper to stamp ${st[1]}.`, `Stamp ${st[0]}  tap to stamp!`); };
+    tools.append(b);
+  });
+  const undoBtn = h('button', { class: 'tool', 'aria-label': 'Undo' }, '↩️');
+  undoBtn.onclick = () => {
+    if (!undo.length) { say('Nothing to undo!'); return; }
+    pctx.putImageData(undo.pop(), 0, 0); Sound.flip(); say('Oops! Undo!');
+  };
+  const clearBtn = h('button', { class: 'tool', 'aria-label': 'Clear' }, '🗑️');
+  clearBtn.onclick = () => {
+    pushUndo(); pctx.clearRect(0, 0, W, H); traceItem = null; drawGuide(); strokes = 0;
+    Sound.boing(); say('All clean! Let’s draw something new!', 'All clean! ✨');
+  };
+  tools.append(undoBtn, clearBtn);
+
+  /* actions */
+  const actions = h('div', { class: 'draw-actions' },
+    h('button', { class: 'btn small', onclick: traceNext }, '✏️ Trace'),
+    h('button', { class: 'btn small alt', onclick: idea }, '💡 Idea'),
+    h('button', { class: 'btn small done', onclick: done }, '✅ Done'));
+
+  const galleryTitle = h('h2', { class: 'section' }, '🖼️ My Pictures');
+  const gallery = h('div', { class: 'gallery' });
+  body.append(tip, palette, board, tools, actions, galleryTitle, gallery);
+
+  /* drawing */
+  function fit() {
+    const r = board.getBoundingClientRect();
+    const nw = Math.round(r.width), nh = Math.round(r.height);
+    if (!nw || !nh || (nw === W && nh === H)) return;
+    let old = null;
+    if (W) { old = document.createElement('canvas'); old.width = paint.width; old.height = paint.height; old.getContext('2d').drawImage(paint, 0, 0); }
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = nw; H = nh;
+    for (const c of [guide, paint]) { c.width = W * dpr; c.height = H * dpr; }
+    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (old) pctx.drawImage(old, 0, 0, old.width, old.height, 0, 0, W, H);
+    undo.length = 0;
+    drawGuide();
+  }
+
+  function drawGuide() {
+    gctx.clearRect(0, 0, W, H);
+    if (!traceItem) return;
+    const s = Math.min(W, H) * 0.8;
+    gctx.save();
+    gctx.strokeStyle = 'rgba(110, 90, 180, .5)';
+    gctx.fillStyle = 'rgba(155, 93, 229, .08)';
+    gctx.lineJoin = 'round';
+    if (traceItem.text) {
+      gctx.setLineDash([10, 12]); gctx.lineWidth = 5;
+      gctx.font = `900 ${Math.round(s * 0.95)}px ui-rounded, "Arial Rounded MT Bold", "Chalkboard SE", system-ui, sans-serif`;
+      gctx.textAlign = 'center'; gctx.textBaseline = 'middle';
+      gctx.fillText(traceItem.text, W / 2, H / 2 + s * 0.05);
+      gctx.strokeText(traceItem.text, W / 2, H / 2 + s * 0.05);
+    } else {
+      const k = s / 100;
+      gctx.translate(W / 2 - s / 2, H / 2 - s / 2); gctx.scale(k, k);
+      gctx.setLineDash([10 / k, 12 / k]); gctx.lineWidth = 5 / k;
+      const p = new Path2D(TRACE_SHAPES[traceItem.shape]);
+      gctx.fill(p); gctx.stroke(p);
+    }
+    gctx.restore();
+  }
+
+  const pos = (e) => { const r = paint.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  function pushUndo() {
+    try { undo.push(pctx.getImageData(0, 0, paint.width, paint.height)); if (undo.length > 12) undo.shift(); } catch (e) { /* ignore */ }
+  }
+  function brushStyle() {
+    pctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+    if (tool === 'rainbow') { hue = (hue + 5) % 360; pctx.strokeStyle = pctx.fillStyle = `hsl(${hue}, 90%, 55%)`; }
+    else pctx.strokeStyle = pctx.fillStyle = color;
+    pctx.lineWidth = tool === 'eraser' ? size * 2 : size;
+    pctx.lineCap = 'round'; pctx.lineJoin = 'round';
+  }
+  function line(a, b) { brushStyle(); pctx.beginPath(); pctx.moveTo(a.x, a.y); pctx.lineTo(b.x, b.y); pctx.stroke(); pctx.globalCompositeOperation = 'source-over'; }
+  function dot(p) { brushStyle(); pctx.beginPath(); pctx.arc(p.x, p.y, pctx.lineWidth / 2, 0, Math.PI * 2); pctx.fill(); pctx.globalCompositeOperation = 'source-over'; }
+  function musicBrush(p) {
+    const t = performance.now();
+    if (t - lastNote < 150 || tool === 'eraser') return;
+    lastNote = t;
+    const i = Math.max(0, Math.min(PENTA.length - 1, Math.floor((1 - p.y / H) * PENTA.length)));
+    Sound.playNote(PENTA[i], 'soft');
+  }
+  function placeStamp(p) {
+    pctx.save();
+    pctx.font = `${Math.round(size * 2.6 + 24)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif`;
+    pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
+    pctx.translate(p.x, p.y); pctx.rotate((Math.random() - 0.5) * 0.6);
+    pctx.fillText(stamp[0], 0, 0);
+    pctx.restore();
+    Sound.pop();
+    strokeDone();
+  }
+  function strokeDone() {
+    strokes++;
+    if (strokes % 8 === 0) say(pick(DRAW_PRAISE));
+  }
+
+  const active = new Map();
+  paint.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    Sound.init();
+    if (active.size === 0) pushUndo();
+    const p = pos(e);
+    if (tool === 'stamp') { placeStamp(p); return; }
+    try { paint.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    active.set(e.pointerId, p);
+    dot(p); musicBrush(p);
+  });
+  paint.addEventListener('pointermove', (e) => {
+    let prev = active.get(e.pointerId);
+    if (!prev) return;
+    const list = e.getCoalescedEvents && e.getCoalescedEvents().length ? e.getCoalescedEvents() : [e];
+    for (const ce of list) { const p = pos(ce); line(prev, p); prev = p; }
+    active.set(e.pointerId, prev);
+    musicBrush(prev);
+  });
+  const end = (e) => { if (active.delete(e.pointerId) && active.size === 0) strokeDone(); };
+  paint.addEventListener('pointerup', end);
+  paint.addEventListener('pointercancel', end);
+
+  /* trace, ideas, done */
+  function traceNext() {
+    let next;
+    do { next = pick(TRACE_ITEMS); } while (traceItem && next === traceItem);
+    traceItem = next;
+    pushUndo(); pctx.clearRect(0, 0, W, H); strokes = 0;
+    drawGuide(); Sound.sparkle();
+    say(`Let's trace ${traceItem.say}! Follow the dotted line with your finger.`,
+      `✏️ Trace ${traceItem.text || traceItem.shape}: follow the dots!`);
+  }
+  function idea() { Sound.sparkle(); const i = pick(DRAW_IDEAS); say(i, `💡 ${i}`); }
+
+  function snapshot() {
+    const tw = 320, th = Math.round(tw * H / W) || 240;
+    const c = document.createElement('canvas'); c.width = tw; c.height = th;
+    const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, tw, th);
+    x.drawImage(guide, 0, 0, tw, th); x.drawImage(paint, 0, 0, tw, th);
+    return c.toDataURL('image/jpeg', 0.75);
+  }
+  function done() {
+    if (!strokes) { say('Draw something first, then tap done!'); return; }
+    const pics = store.get('drawings', []);
+    pics.unshift(snapshot());
+    store.set('drawings', pics.slice(0, 8));
+    strokes = 0;
+    celebrate(); addStar();
+    say(traceItem ? `Great tracing! You traced ${traceItem.say}!` : 'What a beautiful picture! I put it in your gallery.',
+      '🌟 Saved to My Pictures!');
+    showGallery();
+  }
+  function showGallery() {
+    const pics = store.get('drawings', []);
+    gallery.innerHTML = '';
+    galleryTitle.hidden = !pics.length;
+    pics.forEach((src) => {
+      const img = h('img', { src, alt: 'My picture' });
+      img.onclick = () => {
+        Sound.tap(); Voice.say('Look at your picture!');
+        const close = overlay(h('div', { class: 'big-card' },
+          h('img', { src, alt: 'My picture', class: 'pic-big' }),
+          h('button', { class: 'btn', onclick: () => close() }, '👍 Nice!')));
+      };
+      gallery.append(img);
+    });
+  }
+
+  fit();
+  showGallery();
+  const onResize = () => fit();
+  window.addEventListener('resize', onResize);
+  cleanup = () => window.removeEventListener('resize', onResize);
+  Voice.say('Let’s draw! Pick a color and draw with your finger. Tap trace to practice letters, or idea for something to draw.');
+}
+
 const ACTIVITIES = [
   { id: 'abc', label: 'ABC', em: '🔤', a: '#ff6b6b', b: '#ff9a8b', say: 'Let’s learn letters!' },
   { id: 'numbers', label: '123', em: '🔢', a: '#ff9f43', b: '#ffc36b', say: 'Let’s count!' },
@@ -773,6 +1029,7 @@ const ACTIVITIES = [
   { id: 'animals', label: 'Animals', em: '🦁', a: '#18a9c4', b: '#62d6e8', say: 'Animals! Roar!' },
   { id: 'music', label: 'Music', em: '🎹', a: '#4d7cff', b: '#8ea9ff', say: 'Music time! Let’s play!' },
   { id: 'memory', label: 'Memory', em: '🃏', a: '#9b5de5', b: '#c39bff', say: 'Let’s play memory!' },
+  { id: 'draw', label: 'Draw', em: '🖍️', a: '#7cb342', b: '#b8e06a', say: 'Let’s draw and color!' },
   { id: 'stickers', label: 'Stickers', em: '🦄', a: '#f15bb5', b: '#ff9ad5', say: 'Your stickers!' },
 ];
 
@@ -792,7 +1049,7 @@ function renderHome() {
 /* ================= navigation ================= */
 const SCREENS = {
   home: renderHome, abc: renderABC, numbers: renderNumbers, colors: renderColors, shapes: renderShapes,
-  animals: renderAnimals, music: renderMusic, memory: renderMemory, stickers: renderStickers,
+  animals: renderAnimals, music: renderMusic, draw: renderDraw, memory: renderMemory, stickers: renderStickers,
 };
 let cleanup = null;
 
