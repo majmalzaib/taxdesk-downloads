@@ -1,0 +1,8 @@
+{
+  "appId": "com.littlestars.kids",
+  "appName": "Little Stars",
+  "webDir": "www",
+  "backgroundColor": "#8f6bff",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never" }
+}

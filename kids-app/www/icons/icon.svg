@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8f6bff"/><stop offset="1" stop-color="#ff7eb3"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g fill="#fff" opacity=".9" font-family="Arial, sans-serif" font-weight="bold">
+    <text x="92" y="150" font-size="70">♪</text>
+    <text x="378" y="140" font-size="60">♫</text>
+    <text x="400" y="420" font-size="54">♪</text>
+  </g>
+  <g transform="translate(256 262) scale(2.6) translate(-60 -58)">
+    <polygon points="60,8 74,42 111,44 82,67 92,104 60,84 28,104 38,67 9,44 46,42"
+      fill="#ffd93b" stroke="#ffd93b" stroke-width="14" stroke-linejoin="round"/>
+    <ellipse cx="48" cy="56" rx="6" ry="8" fill="#3b2d63"/>
+    <ellipse cx="72" cy="56" rx="6" ry="8" fill="#3b2d63"/>
+    <circle cx="50" cy="53" r="2.3" fill="#fff"/><circle cx="74" cy="53" r="2.3" fill="#fff"/>
+    <circle cx="39" cy="69" r="6" fill="#ff8fb1" opacity=".75"/>
+    <circle cx="81" cy="69" r="6" fill="#ff8fb1" opacity=".75"/>
+    <path d="M50 68 Q60 80 70 68" fill="none" stroke="#3b2d63" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>
